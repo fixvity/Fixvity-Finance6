@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compound Interest Calculator</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --primary:#2563eb;
+  --success:#16a34a;
+  --text:#0f172a;
+  --muted:#64748b;
+  --border:#e5e7eb;
+  --radius:18px;
+  --shadow:0 20px 40px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Arial;
+  background:var(--bg);
+  color:var(--text);
+}
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:18px;
+}
+h1{
+  text-align:center;
+  color:var(--primary);
+  margin-bottom:24px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1.4fr;
+  gap:24px;
+}
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:22px;
+}
+label{
+  display:block;
+  margin-top:14px;
+  font-size:14px;
+}
+input,select{
+  width:100%;
+  padding:12px;
+  margin-top:6px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-size:15px;
+}
+button{
+  width:100%;
+  margin-top:16px;
+  padding:15px;
+  font-size:16px;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+}
+.primary{background:var(--primary);color:#fff}
+.secondary{
+  background:#eef2ff;
+  color:var(--primary);
+  border:1px solid #c7d2fe;
+}
+.summary{
+  background:#ecfdf5;
+  border-left:6px solid var(--success);
+  padding:16px;
+  border-radius:14px;
+  margin-bottom:16px;
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+}
+.stat{
+  background:#f8fafc;
+  padding:14px;
+  border-radius:12px;
+  text-align:center;
+}
+.stat .value{
+  font-size:22px;
+  font-weight:700;
+  color:var(--primary);
+}
+.stat .label{
+  font-size:13px;
+  color:var(--muted);
+}
+canvas{margin-top:24px}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>Compound Interest Calculator</h1>
+
+<div class="grid">
+
+<!-- INPUT -->
+<div class="card">
+
+<label>Initial Investment</label>
+<input id="principal" value="10000">
+
+<label>Monthly Contribution</label>
+<input id="monthly" value="500">
+
+<label>Annual Interest Rate (%)</label>
+<input id="rate" value="7">
+
+<label>Time Period (Years)</label>
+<input id="years" value="20">
+
+<label>Compounding Frequency</label>
+<select id="freq">
+  <option value="12">Monthly</option>
+  <option value="4">Quarterly</option>
+  <option value="1">Yearly</option>
+</select>
+
+<label>Currency</label>
+<select id="currency">
+  <option value="$">USD ($)</option>
+  <option value="€">EUR (€)</option>
+  <option value="£">GBP (£)</option>
+  <option value="₹">INR (₹)</option>
+  <option value="C$">CAD (C$)</option>
+  <option value="A$">AUD (A$)</option>
+</select>
+
+<button class="primary" onclick="calculate()">Calculate</button>
+<button class="secondary" onclick="clearForm()">Clear</button>
+<button class="secondary" onclick="downloadCSV()">Download CSV</button>
+
+</div>
+
+<!-- OUTPUT -->
+<div class="card">
+
+<div class="summary">
+<strong>Compound interest growth over time.</strong>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <div class="value" id="future">—</div>
+    <div class="label">Final Value</div>
+  </div>
+  <div class="stat">
+    <div class="value" id="contrib">—</div>
+    <div class="label">Total Contributions</div>
+  </div>
+  <div class="stat">
+    <div class="value" id="interest">—</div>
+    <div class="label">Total Interest Earned</div>
+  </div>
+</div>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+</div>
+</div>
+
+<script>
+let chart;
+
+function fmt(v){
+  let sym = currency.value;
+  return sym + Number(v).toLocaleString(undefined,{maximumFractionDigits:0});
+}
+
+function calculate(){
+  let P = +principal.value;
+  let PMT = +monthly.value;
+  let r = +rate.value / 100;
+  let t = +years.value;
+  let n = +freq.value;
+
+  let labels=[], data=[];
+  let balance=P;
+  let totalContrib=P;
+
+  for(let i=1;i<=t;i++){
+    for(let j=0;j<n;j++){
+      balance = balance * (1 + r/n) + (PMT*12/n);
+    }
+    totalContrib += PMT*12;
+    labels.push("Year "+i);
+    data.push(balance);
+  }
+
+  future.innerHTML = fmt(balance);
+  contrib.innerHTML = fmt(totalContrib);
+  interest.innerHTML = fmt(balance - totalContrib);
+
+  if(chart) chart.destroy();
+  chart = new Chart(chart,{
+    type:"line",
+    data:{
+      labels,
+      datasets:[{
+        label:"Investment Growth",
+        data,
+        borderWidth:2
+      }]
+    }
+  });
+}
+
+function clearForm(){
+  document.querySelectorAll("input").forEach(i=>i.value="");
+  future.innerHTML="—";
+  contrib.innerHTML="—";
+  interest.innerHTML="—";
+  if(chart) chart.destroy();
+}
+
+function downloadCSV(){
+  const rows=[
+    ["Field","Value"],
+    ["Initial Investment",principal.value],
+    ["Monthly Contribution",monthly.value],
+    ["Interest Rate %",rate.value],
+    ["Years",years.value],
+    ["Compounding",freq.value],
+    ["Final Value",future.innerText],
+    ["Total Contributions",contrib.innerText],
+    ["Interest Earned",interest.innerText]
+  ];
+  let csv=rows.map(r=>r.join(",")).join("\n");
+  let blob=new Blob([csv],{type:"text/csv"});
+  let url=URL.createObjectURL(blob);
+  let a=document.createElement("a");
+  a.href=url;
+  a.download="compound-interest.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
