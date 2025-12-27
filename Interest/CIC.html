@@ -133,9 +133,15 @@ canvas{margin-top:24px}
 
 <label>Compounding Frequency</label>
 <select id="freq">
-  <option value="12">Monthly</option>
+  <option value="12">Monthly (APR)</option>
+  <option value="1">Annually (APY)</option>
+  <option value="2">Semiannually</option>
   <option value="4">Quarterly</option>
-  <option value="1">Yearly</option>
+  <option value="24">Semimonthly</option>
+  <option value="26">Biweekly</option>
+  <option value="52">Weekly</option>
+  <option value="365">Daily</option>
+  <option value="continuous">Continuously</option>
 </select>
 
 <label>Currency</label>
@@ -196,18 +202,24 @@ function calculate(){
   let PMT = +monthly.value;
   let r = +rate.value / 100;
   let t = +years.value;
-  let n = +freq.value;
+  let f = freq.value;
 
-  let labels=[], data=[];
-  let balance=P;
-  let totalContrib=P;
+  let labels = [];
+  let data = [];
+  let balance = P;
+  let totalContrib = P;
 
-  for(let i=1;i<=t;i++){
-    for(let j=0;j<n;j++){
-      balance = balance * (1 + r/n) + (PMT*12/n);
+  for(let year = 1; year <= t; year++){
+    if(f === "continuous"){
+      balance = balance * Math.exp(r) + (PMT * 12);
+    } else {
+      let n = +f;
+      for(let i = 0; i < n; i++){
+        balance = balance * (1 + r / n) + (PMT * 12 / n);
+      }
     }
-    totalContrib += PMT*12;
-    labels.push("Year "+i);
+    totalContrib += PMT * 12;
+    labels.push("Year " + year);
     data.push(balance);
   }
 
@@ -216,13 +228,13 @@ function calculate(){
   interest.innerHTML = fmt(balance - totalContrib);
 
   if(chart) chart.destroy();
-  chart = new Chart(chart,{
+  chart = new Chart(document.getElementById("chart"),{
     type:"line",
     data:{
-      labels,
+      labels: labels,
       datasets:[{
         label:"Investment Growth",
-        data,
+        data: data,
         borderWidth:2
       }]
     }
@@ -244,7 +256,7 @@ function downloadCSV(){
     ["Monthly Contribution",monthly.value],
     ["Interest Rate %",rate.value],
     ["Years",years.value],
-    ["Compounding",freq.value],
+    ["Compounding",freq.options[freq.selectedIndex].text],
     ["Final Value",future.innerText],
     ["Total Contributions",contrib.innerText],
     ["Interest Earned",interest.innerText]
@@ -254,7 +266,7 @@ function downloadCSV(){
   let url=URL.createObjectURL(blob);
   let a=document.createElement("a");
   a.href=url;
-  a.download="compound-interest.csv";
+  a.download="compound-interest-calculation.csv";
   a.click();
   URL.revokeObjectURL(url);
 }
